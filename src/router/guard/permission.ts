@@ -40,6 +40,18 @@ export default function setupPermissionGuard(router: Router) {
       if (exist && permissionsAllow) {
         next();
       } else next(NOT_FOUND);
+    } else if (!router.hasRoute(to.name as string)) {
+      router.addRoute('dashboard', {
+        path: 'list',
+        name: 'list',
+        component: () => import('@/views/list/index.vue'),
+        meta: {
+          locale: 'menu.dashboard.workplace',
+          requiresAuth: true,
+          roles: ['*'],
+        },
+      });
+      next(to.fullPath);
     } else {
       // eslint-disable-next-line no-lonely-if
       if (permissionsAllow) next();
