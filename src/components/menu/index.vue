@@ -1,21 +1,27 @@
 <script lang="tsx">
   import { defineComponent, ref, h, compile, computed } from 'vue';
-  import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter, RouteRecordRaw } from 'vue-router';
   import type { RouteMeta } from 'vue-router';
-  import { useAppStore } from '@/store';
+  import { useAppStore, useUserStore } from '@/store';
   import { listenerRouteChange } from '@/utils/route-listener';
   import { openWindow, regexUrl } from '@/utils';
-  import useMenuTree from './use-menu-tree';
+  import { listToTree } from '@/utils/publicJs';
 
   export default defineComponent({
     emit: ['collapse'],
     setup() {
-      const { t } = useI18n();
       const appStore = useAppStore();
       const router = useRouter();
       const route = useRoute();
-      const { menuTree } = useMenuTree();
+      // const { menuTree } = useMenuTree();
+      const userStore = useUserStore();
+      const menuTree = computed(() =>
+        listToTree({
+          list: userStore.menuList,
+          pIdKey: 'parentName',
+          idKey: 'name',
+        })
+      );
       const collapsed = computed({
         get() {
           if (appStore.device === 'desktop') return appStore.menuCollapse;
@@ -46,6 +52,7 @@
         // Trigger router change
         router.push({
           name: item.name,
+          params: item?.meta?.params as any,
         });
       };
       const findMenuOpenKeys = (target: string) => {
@@ -103,7 +110,8 @@
                     key={element?.name}
                     v-slots={{
                       icon,
-                      title: () => h(compile(t(element?.meta?.locale || ''))),
+                      title: () =>
+                        h(compile((element?.meta?.title as string) || '')),
                     }}
                   >
                     {travel(element?.children)}
@@ -114,7 +122,7 @@
                     v-slots={{ icon }}
                     onClick={() => goto(element)}
                   >
-                    {t(element?.meta?.locale || '')}
+                    {element?.meta?.title || ''}
                   </a-menu-item>
                 );
               nodes.push(node as never);

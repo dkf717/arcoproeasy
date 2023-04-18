@@ -74,7 +74,7 @@ setupMock({
           path: '/dashboard',
           name: 'dashboard',
           meta: {
-            locale: 'menu.server.dashboard',
+            title: '仪表盘',
             requiresAuth: true,
             icon: 'icon-dashboard',
             order: 1,
@@ -84,7 +84,7 @@ setupMock({
               path: 'workplace',
               name: 'Workplace',
               meta: {
-                locale: 'menu.server.workplace',
+                title: '工作台',
                 requiresAuth: true,
               },
             },
@@ -97,6 +97,101 @@ setupMock({
               },
             },
           ],
+        },
+      ];
+      return successResponseWrap(menuList);
+    });
+
+    // 用户菜单
+    Mock.mock(new RegExp('/api/user/getMenuss'), () => {
+      const menuList = [
+        {
+          path: '/dashboard',
+          name: 'dashboard',
+          component: 'layout',
+          meta: {
+            title: '仪表盘',
+            requiresAuth: true,
+            icon: 'icon-dashboard',
+            order: 1,
+          },
+        },
+        {
+          parentName: 'dashboard',
+          path: 'workplace',
+          name: 'Workplace',
+          component: '@/views/dashboard/workplace/index.vue',
+          meta: {
+            title: '工作台',
+            requiresAuth: true,
+          },
+        },
+        {
+          path: '/list',
+          name: 'list',
+          component: 'layout',
+          meta: {
+            title: '列表页',
+            requiresAuth: true,
+            icon: 'icon-list',
+            order: 2,
+          },
+        },
+        {
+          parentName: 'list',
+          path: 'search-table', // The midline path complies with SEO specifications
+          name: 'SearchTable',
+          component: '@/views/list/search-table/index.vue',
+          meta: {
+            title: '查询表格',
+            requiresAuth: true,
+          },
+        },
+        {
+          parentName: 'list',
+          path: 'card',
+          name: 'Card',
+          component: '@/views/list/card/index.vue',
+          meta: {
+            title: '卡片列表',
+            requiresAuth: true,
+          },
+        },
+        {
+          parentName: 'list',
+          path: 'routeTable', // The midline path complies with SEO specifications
+          name: 'routeTable',
+          component: '@/views/list/routeTable/index.vue',
+          meta: {
+            title: '路由列表',
+            requiresAuth: true,
+          },
+        },
+        {
+          parentName: 'list',
+          path: 'list/:id',
+          name: '123456',
+          component: '@/views/list/index.vue',
+          meta: {
+            title: '列表页',
+            requiresAuth: true,
+            params: {
+              id: 123456,
+            },
+          },
+        },
+        {
+          parentName: 'list',
+          path: 'list/:id',
+          name: '2222222',
+          component: '@/views/list/index.vue',
+          meta: {
+            title: '列表页2',
+            requiresAuth: true,
+            params: {
+              id: 2222222,
+            },
+          },
         },
       ];
       return successResponseWrap(menuList);

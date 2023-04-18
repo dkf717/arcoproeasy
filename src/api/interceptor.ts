@@ -3,6 +3,7 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Message, Modal } from '@arco-design/web-vue';
 import { useUserStore } from '@/store';
 import { getToken } from '@/utils/auth';
+import { getAxiosResponse } from '@/mock/index';
 
 export interface HttpResponse<T = unknown> {
   status: number;
@@ -37,8 +38,11 @@ axios.interceptors.request.use(
 );
 // add response interceptors
 axios.interceptors.response.use(
-  (response: AxiosResponse<HttpResponse>) => {
-    const res = response.data;
+  async (response: AxiosResponse<HttpResponse>) => {
+    let res = response.data;
+    if (!res) {
+      res = await getAxiosResponse(response);
+    }
     // if the custom code is not 20000, it is judged as an error.
     if (res.code !== 20000) {
       Message.error({

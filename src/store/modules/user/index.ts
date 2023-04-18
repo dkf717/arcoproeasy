@@ -4,6 +4,7 @@ import {
   logout as userLogout,
   getUserInfo,
   LoginData,
+  getUserMenu,
 } from '@/api/user';
 import { setToken, clearToken } from '@/utils/auth';
 import { removeRouteListener } from '@/utils/route-listener';
@@ -28,6 +29,7 @@ const useUserStore = defineStore('user', {
     accountId: undefined,
     certification: undefined,
     role: '',
+    menuList: [],
   }),
 
   getters: {
@@ -65,6 +67,15 @@ const useUserStore = defineStore('user', {
       try {
         const res = await userLogin(loginForm);
         setToken(res.data.token);
+      } catch (err) {
+        clearToken();
+        throw err;
+      }
+    },
+    async getUserMenu() {
+      try {
+        const { data: menuList } = await getUserMenu();
+        this.menuList = menuList;
       } catch (err) {
         clearToken();
         throw err;

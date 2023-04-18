@@ -7,9 +7,12 @@
   // const props = defineProps();
   // 触发事件
   // const emit = defineEmits();
+
+  // import { useRoute } from 'vue-router';
+
   // 获取路由参数
   // const route = useRoute();
-  // const query = route.query;
+  // const { query, params } = route;
 
   // 父组件可调用方法
   // defineExpose({})

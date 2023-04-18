@@ -6,7 +6,7 @@ export const DEFAULT_LAYOUT = () => import('@/layout/default-layout.vue');
 export const REDIRECT_MAIN: RouteRecordRaw = {
   path: '/redirect',
   name: 'redirectWrapper',
-  component: DEFAULT_LAYOUT,
+  component: () => import('@/views/redirect/index.vue'),
   meta: {
     requiresAuth: true,
     hideInMenu: true,
