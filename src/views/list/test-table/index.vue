@@ -253,16 +253,16 @@
       </a-table>
     </a-card>
     <a-card class="general-card">123</a-card>
+    <a-drawer
+      :visible="drawerVisible"
+      :width="400"
+      @ok="drawerVisible = false"
+      @cancel="drawerVisible = false"
+    >
+      <template #title>表格配置</template>
+      <tableConfig @config-change="configChange"></tableConfig>
+    </a-drawer>
   </div>
-  <a-drawer
-    :visible="drawerVisible"
-    :width="400"
-    @ok="drawerVisible = false"
-    @cancel="drawerVisible = false"
-  >
-    <template #title>表格配置</template>
-    <tableConfig @config-change="configChange"></tableConfig>
-  </a-drawer>
 </template>
 
 <script lang="ts" setup>

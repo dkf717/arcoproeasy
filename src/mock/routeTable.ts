@@ -10,12 +10,13 @@ const routeDb = new DbTable('routeList', {
   component: 'text default layout',
   title: 'text',
   icon: 'text',
+  params: 'text',
   orderNo: 'text',
 });
 
 const mockData = {
   '/api/list/route/dataList': async () => {
-    const datalist = await routeDb.getDataList({
+    const datalist = await routeDb.getDataListOld({
       orderBy: 'parentName,orderNo',
     });
     return successResponseWrap({
@@ -27,10 +28,15 @@ const mockData = {
     return successResponseWrap({});
   },
   '/api/user/getMenu': async () => {
-    const datalist: any = await routeDb.getDataList({
+    const datalist: any = await routeDb.getDataListOld({
       orderBy: 'parentName,orderNo',
     });
-    return successResponseWrap(datalist.map((v: any) => ({ ...v, meta: v })));
+    return successResponseWrap(
+      datalist.map((v: any) => ({
+        ...v,
+        meta: { ...v, params: v.params ? JSON.parse(v.params) : '' },
+      }))
+    );
   },
 };
 setupMock({

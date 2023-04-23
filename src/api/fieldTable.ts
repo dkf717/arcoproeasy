@@ -44,34 +44,34 @@ export interface ServiceRecord {
   enable?: boolean;
   expires?: boolean;
 }
-export function queryInspectionList() {
-  return axios.get('/api/list/quality-inspection');
+// export function queryInspectionList() {
+//   return axios.get('/api/list/quality-inspection');
+// }
+
+// export function queryTheServiceList() {
+//   return axios.get('/api/list/the-service');
+// }
+
+// export function queryRulesPresetList() {
+//   return axios.get('/api/list/rules-preset');
+// }
+
+export function getFieldDataList(data: any) {
+  return axios.post<PolicyListRes>('/api/field/dataList', data);
 }
 
-export function queryTheServiceList() {
-  return axios.get('/api/list/the-service');
+export function addNewField(data: any) {
+  return axios.post<PolicyListRes>('/api/field/addNew', data);
 }
 
-export function queryRulesPresetList() {
-  return axios.get('/api/list/rules-preset');
-}
+// export function getTemDataList(data: any) {
+//   return axios.post<PolicyListRes>('/api/list/tem/dataList', data);
+// }
 
-export function getRouteDataList(data: any) {
-  return axios.post<PolicyListRes>('/api/list/route/dataList', data);
-}
+// export function addNewTem(data: any) {
+//   return axios.post<PolicyListRes>('/api/list/tem/addNew', data);
+// }
 
-export function addNewRoute(data: any) {
-  return axios.post<PolicyListRes>('/api/list/route/addNew', data);
-}
-
-export function getTemDataList(data: any) {
-  return axios.post<PolicyListRes>('/api/list/tem/dataList', data);
-}
-
-export function addNewTem(data: any) {
-  return axios.post<PolicyListRes>('/api/list/tem/addNew', data);
-}
-
-export function delTem(id: any) {
-  return axios.post<PolicyListRes>('/api/list/tem/del', id);
-}
+// export function delTem(id: any) {
+//   return axios.post<PolicyListRes>('/api/list/tem/del', id);
+// }

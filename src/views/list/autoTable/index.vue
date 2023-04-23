@@ -66,7 +66,8 @@
         :data="renderData"
         :bordered="false"
         :size="size"
-        @page-change="onPageChange"
+        @page-change="pageChange"
+        @page-size-change="pageSizeChange"
       >
         <template #columns>
           <a-table-column
@@ -92,29 +93,16 @@
     >
       <template #title> Title </template>
       <a-form auto-label-width :model="form">
-        <a-form-item field="parentName" label="父级名称">
-          <a-input v-model="form.parentName" />
-        </a-form-item>
-        <a-form-item field="path" label="路由地址">
-          <a-input v-model="form.path" />
-        </a-form-item>
-        <a-form-item field="name" label="路由名称">
-          <a-input v-model="form.name" />
-        </a-form-item>
-        <a-form-item field="component" label="路由页面">
-          <a-input v-model="form.component" />
-        </a-form-item>
-        <a-form-item field="title" label="路由标题">
-          <a-input v-model="form.title" />
-        </a-form-item>
-        <a-form-item field="icon" label="路由图标">
-          <a-input v-model="form.icon" />
-        </a-form-item>
-        <a-form-item field="param" label="路由参数">
-          <a-input v-model="form.param" />
-        </a-form-item>
-        <a-form-item field="orderNo" label="路由排序">
-          <a-input-number v-model="form.orderNo" />
+        <a-form-item
+          v-for="(column, index) in columns"
+          :key="index"
+          :field="column.field"
+          :label="column.title"
+        >
+          <a-input
+            :model-value="form[column.field]"
+            @update:model-value="form[column.field] = $event"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -122,8 +110,9 @@
 </template>
 
 <script lang="ts" setup>
+  // import引入部分
   import { computed, ref, reactive, watch, nextTick } from 'vue';
-  import useLoading from '@/hooks/loading';
+
   import {
     getRouteDataList,
     PolicyRecord,
@@ -131,105 +120,70 @@
     addNewRoute,
   } from '@/api/list';
   import { Pagination } from '@/types/global';
-  import type { SelectOptionData } from '@arco-design/web-vue/es/select/interface';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
   import cloneDeep from 'lodash/cloneDeep';
   import Sortable from 'sortablejs';
   import renderCom from '@/components/renderCom.vue';
   import { random } from 'lodash';
   import { listToTree } from '@/utils/publicJs';
+  import { useRoute } from 'vue-router';
+  import { getFieldDataList } from '@/api/fieldTable';
+  import { getAutoDataList, addNewAuto } from '@/api/autoTable';
+  import { Notification } from '@arco-design/web-vue';
+  // import type引入部分
+  import type { SelectOptionData } from '@arco-design/web-vue/es/select/interface';
+  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
 
+  // ref组件标记部分
+
+  // hook引入部分
+  import useLoading from '@/hooks/loading';
+
+  const { loading, setLoading } = useLoading(true);
+  const route = useRoute();
+  const { params } = route;
+  const temId = params.id;
+
+  // type定义部分
   type SizeProps = 'mini' | 'small' | 'medium' | 'large';
   type Column = TableColumnData & { checked?: true };
 
-  const generateFormModel = () => {
-    return {
-      number: '',
-      name: '',
-      contentType: '',
-      filterType: '',
-      createdTime: [],
-      status: '',
-    };
-  };
-  const { loading, setLoading } = useLoading(true);
+  // booble绑定部分
+  const formVisible = ref<boolean>(false);
+  // 数字绑定部分
+  // 字符串绑定部分
+  const size = ref<SizeProps>('medium');
+  // 数组绑定部分
   const renderData = ref<PolicyRecord[]>([]);
-  const formModel = ref(generateFormModel());
   const cloneColumns = ref<Column[]>([]);
   const showColumns = ref<Column[]>([]);
-
-  const size = ref<SizeProps>('medium');
-
-  const basePagination: Pagination = {
+  // Map绑定部分
+  // 需重置对象生成函数部分
+  const generatePagination = () => ({
     current: 1,
-    pageSize: 20,
-  };
-  const formVisible = ref<boolean>(false);
-  const pagination = reactive({
-    ...basePagination,
+    pageSize: 10,
+    total: 0,
+    showPageSize: true,
+    showJumper: true,
+    showTotal: true,
   });
-  const form = reactive({
-    id: '',
-    parentName: '',
-    path: '',
-    name: '',
-    component: '',
-    title: '',
-    icon: '',
-    param: '',
-    orderNo: 0,
-  });
-  const columns = computed<any[]>(() => [
-    {
-      title: '路由地址',
-      dataIndex: 'path',
-    },
-    {
-      title: '路由名称',
-      dataIndex: 'name',
-    },
-    {
-      title: '路由页面',
-      dataIndex: 'component',
-    },
-    {
-      title: '路由标题',
-      dataIndex: 'title',
-    },
-    {
-      title: '路由图标',
-      dataIndex: 'icon',
-    },
-    {
-      title: '路由参数',
-      dataIndex: 'param',
-    },
-    {
-      title: '路由排序',
-      dataIndex: 'orderNo',
-    },
-    {
-      title: '操作',
-      dataIndex: 'operations',
-      format: `h('button',{on:{click:()=>{console.log(789)}}},'修改')`,
-    },
-  ]);
-  const fetchData = async (
-    params: PolicyParams = {
-      current: 0,
-      pageSize: 0,
-    }
-  ) => {
+  // 需重制对象绑定部分
+  const pagination = reactive(generatePagination());
+  // 无需重制对象绑定部分
+  // computed部分
+  // watch部分
+  // 方法声明部分
+
+  const form = reactive<any>({});
+  const columns = ref<any[]>([]);
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data } = await getRouteDataList(params);
-
-      renderData.value = listToTree({
-        list: data.list,
-        pIdKey: 'parentName',
-        idKey: 'name',
+      const { data } = await getAutoDataList({
+        temId,
+        pageNum: pagination.current,
+        pageSize: pagination.pageSize,
       });
-      pagination.current = params.current;
+      renderData.value = data.list;
       pagination.total = data.total;
     } catch (err) {
       // you can report use errorHandler or other
@@ -239,25 +193,7 @@
   };
 
   const search = () => {
-    fetchData({
-      ...basePagination,
-      ...formModel.value,
-    } as unknown as PolicyParams);
-  };
-  const onPageChange = (current: number) => {
-    fetchData({ ...basePagination, current });
-  };
-
-  fetchData();
-  const reset = () => {
-    formModel.value = generateFormModel();
-  };
-
-  const handleSelectDensity = (
-    val: string | number | Record<string, any> | undefined,
-    e: Event
-  ) => {
-    size.value = val as SizeProps;
+    fetchData();
   };
 
   const handleChange = (
@@ -296,7 +232,7 @@
     if (val) {
       nextTick(() => {
         const el = document.getElementById('tableSetting') as HTMLElement;
-        const sortable = new Sortable(el, {
+        return new Sortable(el, {
           onEnd(e: any) {
             const { oldIndex, newIndex } = e;
             exchangeArray(cloneColumns.value, oldIndex, newIndex);
@@ -313,7 +249,7 @@
   };
   // 确定
   const handleOk = () => {
-    addNewRoute(form).then((res) => {
+    addNewAuto({ temId, data: form }).then(() => {
       fetchData();
     });
   };
@@ -321,13 +257,36 @@
     () => columns.value,
     (val) => {
       cloneColumns.value = cloneDeep(val);
-      cloneColumns.value.forEach((item, index) => {
+      cloneColumns.value.forEach((item) => {
         item.checked = true;
       });
       showColumns.value = cloneDeep(cloneColumns.value);
     },
     { deep: true, immediate: true }
   );
+  const getTableColumns = async () => {
+    try {
+      const res = await getFieldDataList({ search: { temId } });
+      columns.value = res.data.list.map((v) => ({ ...v, dataIndex: v.field }));
+    } catch (err) {
+      Notification.error(err as string);
+    }
+  };
+  const pageChange = (current: number) => {
+    if (pagination.current !== current) {
+      pagination.current = current;
+      fetchData();
+    }
+  };
+  const pageSizeChange = (pageSize: number) => {
+    pagination.pageSize = pageSize;
+    if (pagination.current === 1) {
+      fetchData();
+    }
+  };
+  // 方法执行部分
+  fetchData();
+  getTableColumns();
 </script>
 
 <script lang="ts">

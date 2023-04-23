@@ -27,6 +27,7 @@ export default class DbTable {
             resolve(Object.values(result.rows));
           },
           function (tx, error) {
+            console.error('sql执行错误',sqlStr,valueList)
             reject(error);
           }
         );
@@ -214,7 +215,7 @@ export default class DbTable {
   };
 
   // 获取搜索sql
-  _getSearchSqlStr = (search = {}) => {
+  _getSearchSqlStr = (search = {},defaultAll=true) => {
     const searchList = [].concat(search);
     const searchSql = searchList
       .map((searchItem) => {
@@ -226,29 +227,59 @@ export default class DbTable {
             const fullKeySql = valueList
               .map(
                 (value) =>
-                  ` ${keyStr} ${
+                  `${keyStr} ${
                     this._contrastMap[contrast] || 'is'
-                  } ${this._sqlValue(value)} `
+                  } ${this._sqlValue(value)}`
               )
               .join(' OR ');
-            return `( ${fullKeySql} )`;
-          }).concat(' 1=1 ')
-          .join(' And ');
-        return `( ${searchItemSql} )`;
+            return `${fullKeySql}`;
+          })
+          .join(' ) And ( ');
+        return `${searchItemSql}`;
       })
-      .join(' or ');
-    return ` ${searchSql} `;
+      .join(' ) or ( ');
+    return `${searchSql}`;
   };
-
-  // 查询数据方法
-  getDataList = ({ search = {}, pageNum = 0, pageSize=0, orderBy = '' }) => {
+  // 获取分页sql
+  getLimitSqlStr(pageNum = 0, pageSize=0){
+      if(!pageNum ||!pageSize){
+        return ''
+      }
+      return `LIMIT ${pageSize*(pageNum-1)},${pageSize}`
+  }
+  // 查询数据方法(旧)
+  getDataListOld = ({ search = {}, pageNum = 0, pageSize=0, orderBy = '' }) => {
     const searchSqlStr = this._getSearchSqlStr(search);
+    const limitSqlStr = this.getLimitSqlStr(pageNum , pageSize)
     return this._executeSql(
       `SELECT * FROM ${this._tableName} WHERE ${
         searchSqlStr || '1 = 1'
-      } ORDER BY ${orderBy || 'rowid'}`
+      } ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
     );
   };
+    // 查询数据方法(新)
+    getDataList = ({ search = {}, pageNum = 0, pageSize=0, orderBy = '' }) => {
+      const searchSqlStr = this._getSearchSqlStr(search);
+      const limitSqlStr = this.getLimitSqlStr(pageNum , pageSize)
+      return  new Promise<T>((resolve, reject) => {
+        Promise.all([
+          this._executeSql(
+            `SELECT COUNT(*) as total FROM ${this._tableName} WHERE ${searchSqlStr || '1 = 1'}`
+          ),
+          this._executeSql(
+              `SELECT * FROM ${this._tableName} WHERE ${
+                searchSqlStr || '1 = 1'
+              } ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
+            )
+        ]).then(([[{total}],list])=>{
+          resolve({
+            total,list
+          })
+        }).catch((err) => {
+          reject(err);
+        });
+      })
+    };
 
   // 更新数据
   _updateData = ({ data = {}, search = {} }) => {
@@ -278,7 +309,7 @@ export default class DbTable {
   // 修改数据方法
   updateData = ({ data = {}, search = {} }) => {
     return new Promise((resolve, reject) => {
-      return this.getDataList({ search })
+      return this.getDataListOld({ search })
         .then((res) => {
           if (res.length) {
             return this._updateData({ data, search });
@@ -295,10 +326,12 @@ export default class DbTable {
   };
 
   // 删除数据方法
-  deleteData({ search = '' }) {
+  deleteData({ search = {} }) {
     // DELETE FROM 表名 WHERE 字段 = 值;
     return new Promise((resolve, reject) => {
-      this._executeSql(``, [])
+      const searchSqlStr = this._getSearchSqlStr(search,false);
+
+      this._executeSql(`DELETE FROM ${this._tableName} WHERE ${searchSqlStr}`)
         .then((res) => {
           resolve(res);
         })
