@@ -115,3 +115,10 @@ export function decodeUrl(str: string): string {
   }
   return decodeUrl(res);
 }
+// 随机id
+export function getRandomId() {
+  return (
+    Number(new Date()).toString(16) +
+    (Math.random() * 10 ** 20).toString(16).slice(0, 10)
+  );
+}

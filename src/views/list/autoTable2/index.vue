@@ -2,6 +2,11 @@
   <div class="container">
     <Breadcrumb :items="['列表页', '路由列表']" />
     <a-card class="general-card" :title="'路由列表'">
+      <template #extra>
+        <!-- <a-link @click="jump">跳转</a-link>
+        <a-link @click="drawerVisible = true">编辑</a-link> -->
+        <slot name="cardExtra"></slot>
+      </template>
       <a-row style="margin-bottom: 16px">
         <a-col :span="12">
           <a-space>

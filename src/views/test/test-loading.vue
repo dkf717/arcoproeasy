@@ -19,9 +19,7 @@
   const [loading, submit] = useAutoRequest(submitApi);
 
   function onSubmit() {
-    submit('aaa').then((res: any) => {
-      console.log('res', res);
-    });
+    submit('aaa').then((res: any) => {});
   }
 </script>
 

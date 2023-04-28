@@ -14,15 +14,15 @@
             );
             return newFn(
               _h,
-              props.cellData[props.column.dataIndex],
+              props.cellData[props.column.field],
               props.cellData,
               props.column
             );
           } catch (error) {
-            return props.cellData[props.column.dataIndex];
+            return props.cellData[props.column.field];
           }
         }
-        return _h('div', props.cellData[props.column.dataIndex]);
+        return _h('div', props.cellData[props.column.field]);
       };
       return () => {
         return turnFn(h);

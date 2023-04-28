@@ -4,10 +4,10 @@ import {
   logout as userLogout,
   getUserInfo,
   LoginData,
-  getUserMenu,
 } from '@/api/user';
 import { setToken, clearToken } from '@/utils/auth';
 import { removeRouteListener } from '@/utils/route-listener';
+import { getRouterDataList } from '@/api/allApi';
 import { UserState } from './types';
 import useAppStore from '../app';
 
@@ -74,8 +74,8 @@ const useUserStore = defineStore('user', {
     },
     async getUserMenu() {
       try {
-        const { data: menuList } = await getUserMenu();
-        this.menuList = menuList;
+        const res = await getRouterDataList();
+        this.menuList = res.data.list;
       } catch (err) {
         clearToken();
         throw err;

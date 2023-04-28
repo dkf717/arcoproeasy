@@ -110,8 +110,8 @@
         <a-form-item field="icon" label="路由图标">
           <a-input v-model="form.icon" />
         </a-form-item>
-        <a-form-item field="param" label="路由参数">
-          <a-input v-model="form.param" />
+        <a-form-item field="params" label="路由参数">
+          <a-input v-model="form.params" />
         </a-form-item>
         <a-form-item field="orderNo" label="路由排序">
           <a-input-number v-model="form.orderNo" />
@@ -202,7 +202,7 @@
     },
     {
       title: '路由参数',
-      dataIndex: 'param',
+      dataIndex: 'params',
     },
     {
       title: '路由排序',
@@ -223,7 +223,6 @@
     setLoading(true);
     try {
       const { data } = await getRouteDataList(params);
-
       renderData.value = listToTree({
         list: data.list,
         pIdKey: 'parentName',

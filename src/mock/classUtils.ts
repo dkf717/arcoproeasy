@@ -252,24 +252,24 @@ export default class DbTable {
     const searchSqlStr = this._getSearchSqlStr(search);
     const limitSqlStr = this.getLimitSqlStr(pageNum , pageSize)
     return this._executeSql(
-      `SELECT * FROM ${this._tableName} WHERE ${
+      `SELECT * FROM ${this._tableName} WHERE (${
         searchSqlStr || '1 = 1'
-      } ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
+      }) ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
     );
   };
     // 查询数据方法(新)
-    getDataList = ({ search = {}, pageNum = 0, pageSize=0, orderBy = '' }) => {
+    getDataList = ({ search = {}, pageNum = 0, pageSize=0, orderBy = '' }={}) => {
       const searchSqlStr = this._getSearchSqlStr(search);
       const limitSqlStr = this.getLimitSqlStr(pageNum , pageSize)
       return  new Promise<T>((resolve, reject) => {
         Promise.all([
           this._executeSql(
-            `SELECT COUNT(*) as total FROM ${this._tableName} WHERE ${searchSqlStr || '1 = 1'}`
+            `SELECT COUNT(*) as total FROM ${this._tableName} WHERE (${searchSqlStr || '1 = 1'})`
           ),
           this._executeSql(
-              `SELECT * FROM ${this._tableName} WHERE ${
+              `SELECT * FROM ${this._tableName} WHERE (${
                 searchSqlStr || '1 = 1'
-              } ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
+              }) ORDER BY ${orderBy || 'rowid'} ${limitSqlStr} `
             )
         ]).then(([[{total}],list])=>{
           resolve({
@@ -292,9 +292,9 @@ export default class DbTable {
           );
           const searchSqlStr = this._getSearchSqlStr(search);
           return this._executeSql(
-            `UPDATE ${this._tableName} SET ${dataSqlStr} WHERE ${
+            `UPDATE ${this._tableName} SET ${dataSqlStr} WHERE (${
               searchSqlStr || '1 = 1'
-            }`
+            })`
           );
         })
         .then((res) => {
@@ -331,7 +331,7 @@ export default class DbTable {
     return new Promise((resolve, reject) => {
       const searchSqlStr = this._getSearchSqlStr(search,false);
 
-      this._executeSql(`DELETE FROM ${this._tableName} WHERE ${searchSqlStr}`)
+      this._executeSql(`DELETE FROM ${this._tableName} WHERE (${searchSqlStr})`)
         .then((res) => {
           resolve(res);
         })
@@ -340,10 +340,23 @@ export default class DbTable {
         });
     });
   }
+  checkExist(tableName){
+    return new Promise((resolve, reject) => {
+      this._executeSql(`SELECT count(*) as total FROM sqlite_master WHERE type="table" AND name = "${tableName}"`)
+        .then(([{total}]) => {
+          resolve(!!total);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  }
 
   // 构造方法
-  constructor(tableName, config, dbName = 'arcoproDb') {
+ constructor(tableName='', config={}, dbName = 'arcoproDb') {
     this._db = openDatabase(dbName, '0.1', 'arcopro数据库', 1024 * 1024);
-    this.createTable(tableName, config);
+    if(tableName){
+      this.createTable(tableName, config);
+    }
   }
 }

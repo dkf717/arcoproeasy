@@ -28,8 +28,9 @@
       }
       return arr[0];
     };
-    const firstMenuName = getFirstFn(tree).name;
-    router.replace({ name: firstMenuName });
+    // console.log(999, getFirstFn(tree));
+    // const firstMenuName = getFirstFn(tree).name;
+    router.replace(getFirstFn(tree));
   }
 </script>
 

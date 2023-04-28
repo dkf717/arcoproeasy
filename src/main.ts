@@ -15,7 +15,6 @@ import '@/assets/style/global.less';
 import '@/api/interceptor';
 
 const app = createApp(App);
-
 app.use(ArcoVue, {});
 app.use(ArcoVueIcon);
 

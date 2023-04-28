@@ -1,15 +1,35 @@
 <template>
   <div class="container">
-    <Breadcrumb :items="['列表页', '路由列表']" />
-    <a-card class="general-card" :title="'路由列表'">
+    <Breadcrumb :items="['**', '**']" />
+    <a-card class="general-card">
+      <template #extra>
+        <slot name="cardExtra"></slot>
+      </template>
       <a-row style="margin-bottom: 16px">
         <a-col :span="12">
           <a-space>
-            <a-button type="primary" @click="addNew">
-              <template #icon>
-                <icon-plus />
+            <a-button
+              v-if="baseConfig?.addBtnShow"
+              :class="{
+                'arco-btn-only-icon':
+                  baseConfig?.addBtnIcon && !baseConfig?.addBtnText,
+              }"
+              type="primary"
+              @click="addNew"
+            >
+              <template
+                v-if="baseConfig?.addBtnIcon || !baseConfig?.addBtnText"
+                #icon
+              >
+                <component
+                  :is="baseConfig?.addBtnIcon || 'icon-plus'"
+                ></component>
               </template>
-              {{ '新建' }}
+              <template
+                v-if="baseConfig?.addBtnText || !baseConfig?.addBtnIcon"
+              >
+                {{ baseConfig?.addBtnText || '新增' }}
+              </template>
             </a-button>
           </a-space>
         </a-col>
@@ -64,22 +84,102 @@
         :pagination="pagination"
         :columns="(cloneColumns as TableColumnData[])"
         :data="renderData"
-        :bordered="false"
+        :bordered="{ cell: true }"
         :size="size"
         @page-change="pageChange"
         @page-size-change="pageSizeChange"
+        @row-click="rowClick"
       >
+        <template #tr>
+          <tr
+            :style="{
+              cursor:
+                baseConfig?.canView &&
+                !baseConfig?.viewBtnIcon &&
+                !baseConfig?.viewBtnText
+                  ? 'pointer'
+                  : '',
+            }"
+          />
+        </template>
         <template #columns>
           <a-table-column
             v-for="column in cloneColumns"
-            :key="column.dataIndex"
+            :key="column.field"
             :title="column.title"
-            :data-index="column.dataIndex"
+            :data-index="column.field"
             :align="column.align"
             :width="column.width"
           >
             <template #cell="{ record }">
               <renderCom :cell-data="record" :column="column"></renderCom>
+            </template>
+          </a-table-column>
+          <a-table-column title="操作" data-index="operations">
+            <template #cell="{ record }">
+              <a-space>
+                <a-link
+                  v-if="
+                    baseConfig?.canView &&
+                    (baseConfig?.viewBtnIcon || baseConfig?.viewBtnText)
+                  "
+                  :hoverable="false"
+                  :icon="baseConfig.viewBtnIcon"
+                  @click.stop="viewRow(record)"
+                >
+                  <template v-if="baseConfig?.viewBtnIcon" #icon>
+                    <component
+                      :is="baseConfig?.viewBtnIcon"
+                      :title="baseConfig?.viewBtnText || '查看'"
+                      style="font-size: 16px"
+                    ></component>
+                  </template>
+                  <template v-if="baseConfig?.viewBtnText">{{
+                    baseConfig.viewBtnText
+                  }}</template>
+                </a-link>
+                <a-link
+                  v-if="baseConfig?.delBtnShow"
+                  status="danger"
+                  :hoverable="false"
+                  :icon="
+                    !!(
+                      (baseConfig?.delBtnShow &&
+                        !baseConfig?.delBtnIcon &&
+                        !baseConfig?.delBtnText) ||
+                      baseConfig?.delBtnIcon
+                    )
+                  "
+                  @click.stop="delRow(record)"
+                >
+                  <template
+                    v-if="
+                      !!(
+                        (baseConfig?.delBtnShow &&
+                          !baseConfig?.delBtnIcon &&
+                          !baseConfig?.delBtnText) ||
+                        baseConfig?.delBtnIcon
+                      )
+                    "
+                    #icon
+                  >
+                    <component
+                      :is="
+                        baseConfig?.delBtnIcon
+                          ? baseConfig?.delBtnIcon
+                          : baseConfig?.delBtnShow && !baseConfig?.delBtnText
+                          ? 'icon-delete'
+                          : ''
+                      "
+                      :title="baseConfig?.delBtnText || '删除'"
+                      style="font-size: 16px"
+                    ></component>
+                  </template>
+                  <template v-if="baseConfig?.delBtnText">{{
+                    baseConfig.delBtnText
+                  }}</template>
+                </a-link>
+              </a-space>
             </template>
           </a-table-column>
         </template>
@@ -93,8 +193,9 @@
     >
       <template #title> Title </template>
       <a-form auto-label-width :model="form">
+        <!-- <template > -->
         <a-form-item
-          v-for="(column, index) in columns"
+          v-for="(column, index) in formColumns"
           :key="index"
           :field="column.field"
           :label="column.title"
@@ -104,6 +205,7 @@
             @update:model-value="form[column.field] = $event"
           />
         </a-form-item>
+        <!-- </template> -->
       </a-form>
     </a-modal>
   </div>
@@ -111,32 +213,48 @@
 
 <script lang="ts" setup>
   // import引入部分
-  import { ref, reactive, watch, nextTick } from 'vue';
+  import { ref, reactive, watch, nextTick, toRef, toRefs, computed } from 'vue';
 
   import cloneDeep from 'lodash/cloneDeep';
   import Sortable from 'sortablejs';
   import renderCom from '@/components/renderCom.vue';
   import { useRoute } from 'vue-router';
   import { getFieldDataList } from '@/api/fieldTable';
-  import { getAutoDataList, addNewAuto } from '@/api/autoTable';
-  import { Notification } from '@arco-design/web-vue';
+  import { getAutoDataList, addNewAuto, delAuto } from '@/api/autoTable';
+  import { Notification, Modal } from '@arco-design/web-vue';
+
   // import type引入部分
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import type {
+    TableColumnData,
+    TableData,
+  } from '@arco-design/web-vue/es/table/interface';
 
   // ref组件标记部分
 
   // hook引入部分
   import useLoading from '@/hooks/loading';
+  import axios from 'axios';
+  import {
+    addNewDynamic,
+    delDynamicById,
+    getDynamicDataList,
+  } from '@/api/dynamic';
 
   const { loading, setLoading } = useLoading(true);
   const route = useRoute();
   const { params } = route;
-  const temId = params.id;
+  const { pageId } = params as { pageId: string };
 
   // type定义部分
   type SizeProps = 'mini' | 'small' | 'medium' | 'large';
   type Column = TableColumnData & { checked?: true };
-
+  const props = defineProps({
+    configuration: {
+      type: Object,
+    },
+  });
+  const baseConfig = computed(() => props?.configuration?.baseConfig);
+  const tableColumnList = computed(() => props?.configuration?.tableColumnList);
   // booble绑定部分
   const formVisible = ref<boolean>(false);
   // 数字绑定部分
@@ -165,11 +283,12 @@
 
   const form = reactive<any>({});
   const columns = ref<any[]>([]);
+  const formColumns = ref<any[]>([]);
   const fetchData = async () => {
     setLoading(true);
     try {
       const { data } = await getAutoDataList({
-        temId,
+        pageId,
         pageNum: pagination.current,
         pageSize: pagination.pageSize,
       });
@@ -239,9 +358,26 @@
   };
   // 确定
   const handleOk = () => {
-    addNewAuto({ temId, data: form }).then(() => {
-      fetchData();
+    https.addNew(form).then(() => {
+      getDataList();
     });
+  };
+  const https: any = {};
+  const getDataList = async () => {
+    setLoading(true);
+    try {
+      const { data } = await https.getDataList({
+        pageId,
+        pageNum: pagination.current,
+        pageSize: pagination.pageSize,
+      });
+      renderData.value = data.list;
+      pagination.total = data.total;
+    } catch (err) {
+      // you can report use errorHandler or other
+    } finally {
+      setLoading(false);
+    }
   };
   watch(
     () => columns.value,
@@ -254,14 +390,54 @@
     },
     { deep: true, immediate: true }
   );
-  const getTableColumns = async () => {
-    try {
-      const res = await getFieldDataList({ search: { temId } });
-      columns.value = res.data.list.map((v) => ({ ...v, dataIndex: v.field }));
-    } catch (err) {
-      Notification.error(err as string);
-    }
-  };
+  watch(
+    () => baseConfig.value,
+    (val) => {
+      if (val) {
+        if (val.getDataListApi) {
+          https.getDataList = (data: any) =>
+            axios.post<any>(val.getDataListApi, data);
+        } else {
+          https.getDataList = (data: any) =>
+            getDynamicDataList({ data, pageId });
+        }
+        if (val.addNewApi) {
+          https.addNew = (data: any) => axios.post<any>(val.addNewApi, data);
+        } else {
+          https.addNew = (data: any) => addNewDynamic({ data, pageId });
+        }
+        if (val.delApi) {
+          https.delById = (id: string) => axios.post<any>(val.delApi, id);
+        } else {
+          https.delById = (id: string) => delDynamicById({ id, pageId });
+        }
+        getDataList();
+      }
+    },
+    { deep: true, immediate: true }
+  );
+  watch(
+    () => tableColumnList.value,
+    (val) => {
+      if (val) {
+        columns.value = JSON.parse(JSON.stringify(val)).filter(
+          (v: any) => v.tableShow
+        );
+        formColumns.value = JSON.parse(JSON.stringify(val)).filter(
+          (v: any) => !v.isCustom
+        );
+      }
+    },
+    { deep: true, immediate: true }
+  );
+  // const getTableColumns = async () => {
+  //   try {
+  //     const res = await getFieldDataList({ search: { temId } });
+  //     columns.value = res.data.list.map((v) => ({ ...v, dataIndex: v.field }));
+  //   } catch (err) {
+  //     Notification.error(err as string);
+  //   }
+  // };
   const pageChange = (current: number) => {
     if (pagination.current !== current) {
       pagination.current = current;
@@ -274,9 +450,36 @@
       fetchData();
     }
   };
+  // 行点击
+  const rowClick = (record: TableData) => {
+    if (
+      baseConfig.value?.canView &&
+      !baseConfig.value?.viewBtnIcon &&
+      !baseConfig.value?.viewBtnText
+    ) {
+      viewRow(record);
+    }
+  };
+  // 查看行
+  const viewRow = (record: TableData) => {
+    // form.id = `${(new Date() as unknown as number) - 0}`;
+    Object.assign(form, record);
+    formVisible.value = true;
+  };
+  // 删除行
+  const delRow = (record: TableData) => {
+    Modal.info({
+      content: '确定删除吗？',
+      onOk: () => {
+        https.delById(record.id).then((res: any) => {
+          getDataList();
+        });
+      },
+    });
+  };
   // 方法执行部分
-  fetchData();
-  getTableColumns();
+  // fetchData();
+  // getTableColumns();
 </script>
 
 <script lang="ts">
